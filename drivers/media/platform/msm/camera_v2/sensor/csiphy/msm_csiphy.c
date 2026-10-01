@@ -2520,7 +2520,8 @@ static int csiphy_probe(struct platform_device *pdev)
 	rc = msm_csiphy_get_clk_info(new_csiphy_dev, pdev);
 	if (rc < 0) {
 		pr_err("%s: msm_csiphy_get_clk_info() failed\n", __func__);
-		rc =  -EFAULT;
+		if (rc != -EPROBE_DEFER)
+			rc = -EFAULT;
 		goto csiphy_no_resource;
 	}
 
@@ -2569,6 +2570,12 @@ csiphy_no_irq_resource:
 	}
 	msm_camera_put_reg_base(pdev, new_csiphy_dev->base, "csiphy", true);
 csiphy_no_resource:
+	/*
+	 * The subdev was registered at the start of the probe; leaving it on
+	 * the media device after freeing new_csiphy_dev corrupted the entity
+	 * list for the next csiphy (list_add corruption on CTL).
+	 */
+	msm_sd_unregister(&new_csiphy_dev->msm_sd);
 	mutex_destroy(&new_csiphy_dev->mutex);
 	kfree(new_csiphy_dev->ctrl_reg);
 	kfree(new_csiphy_dev);
