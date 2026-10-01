@@ -244,14 +244,23 @@ config ARCH_SDM660
 config ARCH_NOKIA_SDM660
 	bool "Nokia (FIH/HMD) SDM630/636/660 platform"
 	depends on ARCH_SDM660
+	select FIH_SDM630_SDM660_PROJS
 	help
 	  Support for Nokia phones built by FIH on the Qualcomm
 	  SDM630/636/660 chipsets. Builds only the Nokia device trees
 	  in dts/vendor/fih instead of the Qualcomm reference ones.
 
+# The FIH symbols the Nokia drivers from the 4.4 kernel test for.
+config FIH_SDM630_SDM660_PROJS
+	bool
+
+config FIH_CRYSTAL
+	bool
+
 config MACH_NOKIA_CTL
 	bool "Nokia 7.1 (CTL)"
 	depends on ARCH_NOKIA_SDM660
+	select FIH_CRYSTAL
 	help
 	  Support for the Nokia 7.1 (TA-1095 and variants), SDM636.
 config ARCH_REALTEK
