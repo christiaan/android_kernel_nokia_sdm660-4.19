@@ -2338,6 +2338,44 @@ static const struct backlight_ops wled_ops = {
 	.get_brightness = wled_get_brightness,
 };
 
+#ifdef CONFIG_FIH_SDM630_SDM660_PROJS
+/*
+ * FIH HDR hook (from leds-qpnp-wled on the 4.4 kernel): the Iris3 display
+ * path raises the WLED full scale current while HDR/SDR2HDR is active and
+ * restores the DT default afterwards, see fih_set_fs_curr() in mdss_dsi.c.
+ */
+static struct wled *fih_wled;
+int g_wled_fs_curr_ua;
+EXPORT_SYMBOL(g_wled_fs_curr_ua);
+
+int qpnp_wled_fs_curr_ua_set(int data)
+{
+	struct wled *wled = fih_wled;
+	u8 string_cfg;
+	u16 addr;
+	int i, rc;
+
+	if (!wled || !is_wled4(wled))
+		return -ENODEV;
+
+	data = clamp(data, 0, 30000);
+	string_cfg = wled->cfg.string_cfg;
+	for (i = 0; (string_cfg >> i) != 0; i++) {
+		if (!(string_cfg & BIT(i)))
+			continue;
+		addr = wled->sink_addr + WLED_SINK_FS_CURR_REG(i);
+		rc = regmap_update_bits(wled->regmap, addr,
+				WLED_SINK_FS_MASK, data / 2500);
+		if (rc < 0)
+			return rc;
+	}
+	wled->cfg.fs_current = data / 2500;
+
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_wled_fs_curr_ua_set);
+#endif
+
 static int wled_probe(struct platform_device *pdev)
 {
 	struct backlight_properties props;
@@ -2410,6 +2448,13 @@ static int wled_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, wled);
+
+#ifdef CONFIG_FIH_SDM630_SDM660_PROJS
+	if (is_wled4(wled)) {
+		fih_wled = wled;
+		g_wled_fs_curr_ua = wled_fs_current_values[wled->cfg.fs_current];
+	}
+#endif
 
 	memset(&props, 0, sizeof(struct backlight_properties));
 	props.type = BACKLIGHT_RAW;
