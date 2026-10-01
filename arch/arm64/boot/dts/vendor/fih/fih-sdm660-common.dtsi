@@ -90,3 +90,18 @@
 &dfps_data_mem {
 	reg = <0x0 0x9f7ff000 0x0 0x00001000>;
 };
+
+/*
+ * The 4.19 qcom sdm660.dtsi declares an AVB vbmeta node, which makes
+ * first-stage init use AVB 2.0 against the vbmeta_a/b partitions. Those
+ * hold the stock HMD metadata; the Nokia 4.4 kernel had no such node and
+ * LineageOS boots this device with the legacy (android-verity, orange)
+ * path. Suspected cause of the silent hang on the first 4.19 system boots.
+ */
+/ {
+	firmware {
+		android {
+			/delete-node/ vbmeta;
+		};
+	};
+};
