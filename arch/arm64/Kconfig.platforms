@@ -240,6 +240,20 @@ config ARCH_SDM660
 	  This enables support for the SDM660 chipset. If you do not
 	  wish to build a kernel that runs on this chipset, say 'N' here.
 
+
+config ARCH_NOKIA_SDM660
+	bool "Nokia (FIH/HMD) SDM630/636/660 platform"
+	depends on ARCH_SDM660
+	help
+	  Support for Nokia phones built by FIH on the Qualcomm
+	  SDM630/636/660 chipsets. Builds only the Nokia device trees
+	  in dts/vendor/fih instead of the Qualcomm reference ones.
+
+config MACH_NOKIA_CTL
+	bool "Nokia 7.1 (CTL)"
+	depends on ARCH_NOKIA_SDM660
+	help
+	  Support for the Nokia 7.1 (TA-1095 and variants), SDM636.
 config ARCH_REALTEK
 	bool "Realtek Platforms"
 	help
