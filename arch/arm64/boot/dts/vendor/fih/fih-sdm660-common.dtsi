@@ -90,3 +90,12 @@
 &dfps_data_mem {
 	reg = <0x0 0x9f7ff000 0x0 0x00001000>;
 };
+
+/*
+ * Let pil-q6v5-mss log the modem's subsystem failure reason. The 4.4
+ * kernel read SMEM item 421 (SMEM_SSR_REASON_MSS0) unconditionally; the
+ * 4.19 driver only does so when the node names the item.
+ */
+&pil_modem {
+	qcom,smem-id = <421>;
+};
