@@ -78,13 +78,12 @@ int gtp_i2c_read(struct i2c_client *client, u8 *buf, int len)
 {
     unsigned int transfer_length = 0;
     unsigned int pos = 0, address = (buf[0] << 8) + buf[1];
-    unsigned char get_buf[64], addr_buf[2];
+    unsigned char *xfer_buf;
     int retry, r = 2;
     struct i2c_msg msgs[] = {
         {
             .addr = client->addr,
             .flags = !I2C_M_RD,
-            .buf = &addr_buf[0],
             .len = GTP_ADDR_LENGTH,
         }, {
             .addr = client->addr,
@@ -93,15 +92,17 @@ int gtp_i2c_read(struct i2c_client *client, u8 *buf, int len)
     };
 
     len -= GTP_ADDR_LENGTH;
-    if (likely(len < sizeof(get_buf))) {
-        /* code optimize, use stack memory */
-        msgs[1].buf = &get_buf[0];
-    } else {
-        msgs[1].buf = kzalloc(len > I2C_MAX_TRANSFER_SIZE
-                ? I2C_MAX_TRANSFER_SIZE : len, GFP_KERNEL);
-        if (!msgs[1].buf)
-            return -ENOMEM;
-    }
+    /*
+     * The i2c-msm controller DMA-maps the message buffers, and with
+     * VMAP_STACK (4.19) stack memory can't be mapped: always use the heap,
+     * for the address bytes as well.
+     */
+    xfer_buf = kzalloc(GTP_ADDR_LENGTH + (len > I2C_MAX_TRANSFER_SIZE
+            ? I2C_MAX_TRANSFER_SIZE : len), GFP_KERNEL);
+    if (!xfer_buf)
+        return -ENOMEM;
+    msgs[0].buf = xfer_buf;
+    msgs[1].buf = xfer_buf + GTP_ADDR_LENGTH;
 
     while (pos != len) {
         if (unlikely(len - pos > I2C_MAX_TRANSFER_SIZE))
@@ -131,8 +132,7 @@ int gtp_i2c_read(struct i2c_client *client, u8 *buf, int len)
         }
     }
 read_exit:
-    if (len >= sizeof(get_buf))
-        kfree(msgs[1].buf);
+    kfree(xfer_buf);
     return r;
 }
 
@@ -153,22 +153,17 @@ int gtp_i2c_write(struct i2c_client *client, u8 *buf, int len)
 {
     unsigned int pos = 0, transfer_length = 0;
     unsigned int address = (buf[0] << 8) + buf[1];
-    unsigned char put_buf[64];
     int retry, r = 1;
     struct i2c_msg msg = {
             .addr = client->addr,
             .flags = !I2C_M_RD,
     };
 
-    if (likely(len < sizeof(put_buf))) {
-        /* code optimize,use stack memory*/
-        msg.buf = &put_buf[0];
-    } else {
-        msg.buf = kmalloc(len > I2C_MAX_TRANSFER_SIZE
-                  ? I2C_MAX_TRANSFER_SIZE : len, GFP_KERNEL);
-        if (!msg.buf)
-            return -ENOMEM;
-    }
+    /* Heap only: the i2c-msm controller can't DMA-map vmapped stacks. */
+    msg.buf = kmalloc(len > I2C_MAX_TRANSFER_SIZE
+              ? I2C_MAX_TRANSFER_SIZE : len, GFP_KERNEL);
+    if (!msg.buf)
+        return -ENOMEM;
 
     len -= GTP_ADDR_LENGTH;
     while (pos != len) {
@@ -198,8 +193,7 @@ int gtp_i2c_write(struct i2c_client *client, u8 *buf, int len)
         }
     }
 write_exit:
-    if (len + GTP_ADDR_LENGTH >= sizeof(put_buf))
-        kfree(msg.buf);
+    kfree(msg.buf);
     return r;
 }
 
