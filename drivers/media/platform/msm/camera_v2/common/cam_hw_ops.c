@@ -170,8 +170,13 @@ int cam_ahb_clk_init(struct platform_device *pdev)
 	data.ahb_client =
 		msm_bus_scale_register_client(data.pbus_data);
 	if (!data.ahb_client) {
-		pr_err("ahb vote registering failed\n");
-		rc = -EINVAL;
+		/*
+		 * msm_bus returns 0 both on bad data and while the bus driver
+		 * hasn't probed yet ("bus driver not ready"); the latter is
+		 * what happens on SDM660, so let the camera probe retry.
+		 */
+		pr_err("ahb vote registering failed, deferring\n");
+		rc = -EPROBE_DEFER;
 		goto err5;
 	}
 

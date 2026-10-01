@@ -1334,6 +1334,17 @@ static int msm_probe(struct platform_device *pdev)
 	static struct dentry *cam_debugfs_root;
 	int rc = 0;
 
+	/*
+	 * First, before anything is allocated or registered: on SDM660 this
+	 * defers until the msm_bus driver is up, and a retry must not find
+	 * a half-registered video node from the previous attempt.
+	 */
+	rc = cam_ahb_clk_init(pdev);
+	if (rc < 0) {
+		pr_err("%s: failed to register ahb clocks: %d\n", __func__, rc);
+		return rc;
+	}
+
 	msm_v4l2_dev = kzalloc(sizeof(*msm_v4l2_dev),
 		GFP_KERNEL);
 	if (WARN_ON(!msm_v4l2_dev)) {
@@ -1428,12 +1439,6 @@ static int msm_probe(struct platform_device *pdev)
 			pr_warn("NON-FATAL: failed to create logsync debugfs file\n");
 	}
 
-	rc = cam_ahb_clk_init(pdev);
-	if (rc < 0) {
-		pr_err("%s: failed to register ahb clocks\n", __func__);
-		goto v4l2_fail;
-	}
-
 	of_property_read_u32(pdev->dev.of_node,
 		"qcom,gpu-limit", &gpu_limit);
 
@@ -1455,6 +1460,11 @@ video_fail:
 	kfree(pvdev);
 pvdev_fail:
 	kzfree(msm_v4l2_dev);
+	/*
+	 * Subdevice drivers (csiphy, csid, ...) check msm_v4l2_dev before
+	 * registering; a dangling pointer made them oops after a failed probe.
+	 */
+	msm_v4l2_dev = NULL;
 probe_end:
 	return rc;
 }
