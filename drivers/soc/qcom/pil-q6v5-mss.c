@@ -52,8 +52,16 @@ static void log_modem_sfr(struct modem_data *drv)
 
 	smem_reason = qcom_smem_get(QCOM_SMEM_HOST_ANY, drv->q6->smem_id,
 								&size);
+	/*
+	 * The 4.4 smem_get_entry_no_rlock(..., SMEM_ANY_HOST_FLAG) also
+	 * searched the modem's private partition; HOST_ANY only covers the
+	 * global heap, so retry with the modem host (1).
+	 */
+	if (IS_ERR(smem_reason))
+		smem_reason = qcom_smem_get(1, drv->q6->smem_id, &size);
 	if (IS_ERR(smem_reason) || !size) {
-		pr_err("modem SFR: (unknown, qcom_smem_get failed).\n");
+		pr_err("modem SFR: (unknown, qcom_smem_get failed: %ld).\n",
+		       IS_ERR(smem_reason) ? PTR_ERR(smem_reason) : 0L);
 		return;
 	}
 	if (!smem_reason[0]) {
