@@ -377,7 +377,7 @@ int avcs_core_query_timer_offset(int64_t *av_offset, int32_t clock_id)
 }
 EXPORT_SYMBOL(avcs_core_query_timer_offset);
 
-#if IS_ENABLED(CONFIG_AVTIMER_LEGACY)
+#if IS_ENABLED(CONFIG_AVTIMER_LEGACY) && IS_ENABLED(CONFIG_MSMB_CAMERA)
 static void avcs_set_isp_fptr(bool enable)
 {
 	struct avtimer_fptr_t av_fptr;
