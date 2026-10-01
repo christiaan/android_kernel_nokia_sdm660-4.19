@@ -108,10 +108,9 @@
   status = "okay";
 };
 
-&pm660l_3 {
-	pmic_analog_codec: analog-codec@f000 {
-		qcom,cdc-micbias-cfilt-mv = <2700000>;
-	};
+/* 4.19: the analog codec node is anlg-cdc@f000, refer to it by label */
+&pmic_analog_codec {
+	qcom,cdc-micbias-cfilt-mv = <2700000>;
 };
 
 &soc{
@@ -131,7 +130,7 @@
         status = "disabled";
     };
 
-    /* TFA9891 SmartAmp I2S */
+    /* TAS2557 SmartAmp I2S */
     qcom,msm-dai-mi2s {
         dai_mi2s2: qcom,msm-dai-q6-mi2s-tert {
             qcom,msm-dai-q6-mi2s-dev-id = <2>;
@@ -146,8 +145,10 @@
 		pinctrl-1 = <&sdm660_gpio4_sleep &sdm660_gpio5_sleep &sdm660_gpio6_sleep &sdm660_gpio7_sleep>;
 		qcom,lpi-gpios;
     };
-    /* TFA9891 SmartAmp I2C */
-    i2c_7: i2c@c1b7000 {
+};
+
+    /* TAS2557 SmartAmp I2C */
+&i2c_7 {
             pinctrl-names = "i2c_active", "i2c_sleep";
             pinctrl-0 = <&sdm660_gpio26_active &sdm660_gpio27_active>;
             pinctrl-1 = <&sdm660_gpio26_sleep &sdm660_gpio27_sleep>;
@@ -166,9 +167,8 @@
                 tas2557,device-model = "CTL"; /* Select tas2557 firmware */
             };
     };
-    
-    /* gpio */
-   tlmm: pinctrl@03000000 {
+
+&tlmm {
        /* gpio 76 */ /* SMARTAMP_IRQ */
         tas2557_irq_default: tas2557_irq_default {
           mux {
@@ -236,8 +236,8 @@
 		};
 	};
     };
-        /* gpio */
-    lpi_tlmm: lpi_pinctrl@15070000 {
+
+&lpi_tlmm {
         /* gpio 4 */ /* SPK_I2S_CLK */
         sdm660_gpio4_active: sdm660_gpio4_active {
             mux {
@@ -349,4 +349,3 @@
             };
         };
     };
-};

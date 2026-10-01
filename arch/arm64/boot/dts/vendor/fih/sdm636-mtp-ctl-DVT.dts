@@ -15,12 +15,7 @@
 
 #include "../qcom/sdm636.dtsi"
 #include "../qcom/sdm636-mtp.dtsi"
-/*
- * TODO(4.19 port, audio step): rebase the CTL audio dtsi (TAS2557 on
- * tert-mi2s) onto 4.19's sdm660-internal-codec.dtsi. The 4.4 copy
- * redefines nodes that 4.19 now names differently (anlg-cdc@f000).
- */
-/* #include "nokia/audio/sdm660-internal-codec-ctl-ti.dtsi" */
+#include "nokia/audio/sdm660-internal-codec-ctl-ti.dtsi"
 #include "nokia/platform/ctl-DVT-636.dtsi"
 /* fih Common includes */
 #include "fih-sdm660-common.dtsi"
