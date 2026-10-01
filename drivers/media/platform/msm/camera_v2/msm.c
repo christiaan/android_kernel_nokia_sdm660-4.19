@@ -426,8 +426,9 @@ int msm_sd_register(struct msm_sd_subdev *msm_subdev)
 	if (WARN_ON(!msm_subdev))
 		return -EINVAL;
 
-	if (WARN_ON(!msm_v4l2_dev) || WARN_ON(!msm_v4l2_dev->dev))
-		return -EIO;
+	/* The camera core (msm_probe) isn't up yet: let the caller retry. */
+	if (!msm_v4l2_dev || !msm_v4l2_dev->dev)
+		return -EPROBE_DEFER;
 
 	mutex_lock(&ordered_sd_mtx);
 	msm_add_sd_in_position(msm_subdev, &ordered_sd_list);

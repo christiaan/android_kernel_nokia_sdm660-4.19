@@ -169,17 +169,6 @@ int cam_ahb_clk_init(struct platform_device *pdev)
 
 	data.ahb_client =
 		msm_bus_scale_register_client(data.pbus_data);
-	if (!data.ahb_client) {
-		/*
-		 * msm_bus returns 0 both on bad data and while the bus driver
-		 * hasn't probed yet ("bus driver not ready"); the latter is
-		 * what happens on SDM660, so let the camera probe retry.
-		 */
-		pr_err("ahb vote registering failed, deferring\n");
-		rc = -EPROBE_DEFER;
-		goto err5;
-	}
-
 	index = get_vector_index("suspend");
 	if (index < 0) {
 		pr_err("svs vector not supported\n");
@@ -187,9 +176,19 @@ int cam_ahb_clk_init(struct platform_device *pdev)
 		goto err6;
 	}
 
-	/* request for svs in init */
-	msm_bus_scale_client_update_request(data.ahb_client,
-		index);
+	if (data.ahb_client) {
+		/* request for svs in init */
+		msm_bus_scale_client_update_request(data.ahb_client, index);
+	} else {
+		/*
+		 * msm_bus returns 0 while the bus driver hasn't probed yet
+		 * ("bus driver not ready"), which happens on SDM660 depending
+		 * on initcall order. Failing here leaves the camera core
+		 * unprobed, and the subdevice drivers (csiphy, flash, ...)
+		 * don't handle that. Register on the first vote instead.
+		 */
+		pr_warn("ahb vote client not registered yet, retrying on first vote\n");
+	}
 	data.ahb_clk_state = CAM_AHB_SUSPEND_VOTE;
 	data.probe_done = TRUE;
 	mutex_init(&data.lock);
@@ -200,8 +199,9 @@ int cam_ahb_clk_init(struct platform_device *pdev)
 	return rc;
 
 err6:
-	msm_bus_scale_unregister_client(data.ahb_client);
-err5:
+	if (data.ahb_client)
+		msm_bus_scale_unregister_client(data.ahb_client);
+	data.ahb_client = 0;
 	data.votes = NULL;
 err4:
 	data.pbus_data = NULL;
@@ -238,6 +238,15 @@ static int cam_consolidate_ahb_vote(enum cam_ahb_clk_client id,
 
 	CDBG("dbg: max vote : %u\n", max);
 	if (max != data.ahb_clk_state) {
+		if (!data.ahb_client) {
+			data.ahb_client =
+				msm_bus_scale_register_client(data.pbus_data);
+			if (!data.ahb_client) {
+				pr_err("ahb vote registering failed\n");
+				mutex_unlock(&data.lock);
+				return -EAGAIN;
+			}
+		}
 		msm_bus_scale_client_update_request(data.ahb_client,
 			max);
 		data.ahb_clk_state = max;
