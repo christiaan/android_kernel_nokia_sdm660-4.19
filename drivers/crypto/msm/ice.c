@@ -648,6 +648,14 @@ exit_unreg_chrdev_region:
 	return rc;
 }
 
+static void unregister_ice_device(struct ice_device *ice_dev)
+{
+	cdev_del(&ice_dev->cdev);
+	device_destroy(ice_dev->driver_class, ice_dev->device_no);
+	class_destroy(ice_dev->driver_class);
+	unregister_chrdev_region(ice_dev->device_no, 1);
+}
+
 static int qcom_ice_probe(struct platform_device *pdev)
 {
 	struct ice_device *ice_dev;
@@ -701,7 +709,7 @@ static int qcom_ice_probe(struct platform_device *pdev)
 	rc = qcom_ice_init(ice_dev, NULL, NULL);
 	if (rc) {
 		pr_err("create character device failed.\n");
-		goto err_ice_dev;
+		goto err_unregister;
 	}
 	ice_dev->is_ice_enabled = true;
 
@@ -710,6 +718,14 @@ static int qcom_ice_probe(struct platform_device *pdev)
 
 	goto out;
 
+err_unregister:
+	/*
+	 * qcom_ice_init() returns -EPROBE_DEFER while the ICE clocks aren't
+	 * registered yet. Drop the character device, or the re-probe fails
+	 * on the existing class ("cannot create duplicate filename
+	 * '/class/icesdcc'") and the eMMC never comes up.
+	 */
+	unregister_ice_device(ice_dev);
 err_ice_dev:
 	kfree(ice_dev);
 out:
