@@ -646,6 +646,13 @@ source "drivers/misc/cxl/Kconfig"
 source "drivers/misc/ocxl/Kconfig"
 source "drivers/misc/cardreader/Kconfig"
 source "drivers/misc/fpr_FingerprintCard/Kconfig"
+config CTL_PANIC_AFTER
+	bool "Panic a set time after boot (bring-up aid)"
+	help
+	  Adds the ctl_panic_after=<seconds> kernel parameter, which panics
+	  that long after late init, so a hung boot ends in a warm reset that
+	  keeps the ramoops log. Does nothing unless the parameter is set.
+
 source "drivers/misc/qrc/Kconfig"
 endmenu
 
