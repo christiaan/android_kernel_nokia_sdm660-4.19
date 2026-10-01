@@ -4575,7 +4575,9 @@ void venus_hfi_delete_device(void *device)
 			destroy_workqueue(close->vidc_workq);
 			destroy_workqueue(close->venus_pm_workq);
 			free_irq(dev->hal_data->irq, close);
-			iounmap(dev->hal_data->register_base);
+			/* Mapped with devm_ioremap_nocache() */
+			devm_iounmap(&dev->res->pdev->dev,
+				dev->hal_data->register_base);
 			kfree(close->hal_data);
 			kfree(close->response_pkt);
 			kfree(close);

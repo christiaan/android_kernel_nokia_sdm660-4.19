@@ -651,6 +651,16 @@ static int msm_vidc_probe_vidc_device(struct platform_device *pdev)
 	return rc;
 
 err_fail_sub_device_probe:
+	/*
+	 * core is freed below: take it off the cores list and give its slot
+	 * back, or a deferred re-probe (e.g. regulators not ready yet) adds
+	 * to a list that still links the freed core.
+	 */
+	mutex_lock(&vidc_driver->lock);
+	list_del(&core->list);
+	vidc_driver->num_cores--;
+	mutex_unlock(&vidc_driver->lock);
+	debugfs_remove_recursive(core->debugfs_root);
 	vidc_hfi_deinitialize(core->hfi_type, core->device);
 err_cores_exceeded:
 	device_remove_file(&core->vdev[MSM_VIDC_ENCODER].vdev.dev,
