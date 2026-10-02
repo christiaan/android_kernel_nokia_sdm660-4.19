@@ -1,3 +1,14 @@
+/*
+ * sec_nfc never selects a pinctrl state, so hog the NFC_CLK_REQ pin config
+ * on the PMIC GPIO controller itself. Stock 4.4 set it up through qpnp-pin
+ * (digital input, VIN1); without it the S3NRN81's clock request never
+ * reaches the LN_BB_CLK3 pin control and RF activation fails.
+ */
+&pm660_gpios {
+	pinctrl-names = "default";
+	pinctrl-0 = <&nfc_clk_default>;
+};
+
 &i2c_6{
 	status = "okay";
 
