@@ -1427,6 +1427,10 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		goto reg_enable_failed;
 	}
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	master = c_ctrl->cci_info->cci_i2c_master;
+#endif
+
 	/* Re-initialize the completion */
 	reinit_completion(&cci_dev->cci_master_info[master].reset_complete);
 	for (i = 0; i < NUM_QUEUES; i++)
@@ -1476,12 +1480,20 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		}
 	}
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	cci_dev->cci_master_info[master].reset_pending = TRUE;
+#else
 	cci_dev->cci_master_info[MASTER_0].reset_pending = TRUE;
+#endif
 	msm_camera_io_w_mb(CCI_RESET_CMD_RMSK, cci_dev->base +
 			CCI_RESET_CMD_ADDR);
 	msm_camera_io_w_mb(0x1, cci_dev->base + CCI_RESET_CMD_ADDR);
 	rc = wait_for_completion_timeout(
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		&cci_dev->cci_master_info[master].reset_complete,
+#else
 		&cci_dev->cci_master_info[MASTER_0].reset_complete,
+#endif
 		CCI_TIMEOUT);
 	if (rc <= 0) {
 		pr_err("%s: wait_for_completion_timeout %d\n",
