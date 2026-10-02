@@ -3463,6 +3463,12 @@ static int msm_hs_probe(struct platform_device *pdev)
 	msm_uport->bam_rx_ep_pipe_index =
 			pdata->bam_rx_ep_pipe_index;
 	msm_uport->wakeup.enabled = true;
+	/*
+	 * Neither the core nor the wakeup irq is requested until
+	 * msm_hs_startup(); start in the same state msm_hs_shutdown() leaves,
+	 * so the first runtime resume doesn't enable an unrequested irq.
+	 */
+	msm_uport->wakeup.freed = true;
 
 	uport->iotype = UPIO_MEM;
 	uport->fifosize = 64;
