@@ -31,6 +31,7 @@ struct msm_isp_event_data32 {
 	} u;
 };
 
+#ifdef CONFIG_MSM_ISP_V1 /* needs the 4.19 uapi msm_isp32_error_info */
 struct msm_isp32_event_data32 {
 	struct compat_timeval timestamp;
 	struct compat_timeval mono_timestamp;
@@ -42,6 +43,7 @@ struct msm_isp32_event_data32 {
 		struct msm_isp32_error_info error_info;
 	} u;
 };
+#endif
 
 #endif
 #ifdef CONFIG_MSM_AVTIMER

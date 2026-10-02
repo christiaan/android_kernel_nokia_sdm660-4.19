@@ -1,4 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
 #ifndef __UAPI_LINUX_MSM_JPEG_H
 #define __UAPI_LINUX_MSM_JPEG_H
 
@@ -123,3 +122,4 @@ struct msm_jpeg_hw_cmds {
 };
 
 #endif
+

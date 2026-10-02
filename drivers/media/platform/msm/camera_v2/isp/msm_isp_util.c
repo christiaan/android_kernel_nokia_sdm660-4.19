@@ -266,9 +266,11 @@ static inline u32 msm_isp_evt_mask_to_isp_event(u32 evt_mask)
 	case ISP_EVENT_MASK_INDEX_BUF_FATAL_ERROR:
 		evt_id = ISP_EVENT_BUF_FATAL_ERROR;
 		break;
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 	case ISP_EVENT_MASK_INDEX_SOF_UPDATE_NANOSEC:
 		evt_id = ISP_EVENT_SOF_UPDATE_NANOSEC;
 		break;
+#endif
 	default:
 		evt_id = ISP_EVENT_SUBS_MASK_NONE;
 		break;
@@ -298,7 +300,9 @@ static inline int msm_isp_subscribe_event_mask(struct v4l2_fh *fh,
 			}
 		}
 	} else if (evt_mask_index == ISP_EVENT_MASK_INDEX_SOF ||
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 		   evt_mask_index == ISP_EVENT_MASK_INDEX_SOF_UPDATE_NANOSEC ||
+#endif
 		   evt_mask_index == ISP_EVENT_MASK_INDEX_REG_UPDATE ||
 		   evt_mask_index == ISP_EVENT_MASK_INDEX_STREAM_UPDATE_DONE) {
 		for (interface = 0; interface < VFE_SRC_MAX; interface++) {
@@ -344,7 +348,11 @@ static inline int msm_isp_process_event_subscription(struct v4l2_fh *fh,
 	}
 
 	for (evt_mask_index = ISP_EVENT_MASK_INDEX_STATS_NOTIFY;
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 		evt_mask_index <= ISP_EVENT_MASK_INDEX_SOF_UPDATE_NANOSEC;
+#else
+		evt_mask_index <= ISP_EVENT_MASK_INDEX_BUF_FATAL_ERROR;
+#endif
 		evt_mask_index++) {
 		if (evt_mask & (1<<evt_mask_index)) {
 			evt_id = msm_isp_evt_mask_to_isp_event(evt_mask_index);
@@ -534,6 +542,12 @@ static int msm_isp_cfg_rdi(struct vfe_device *vfe_dev,
 		vfe_dev, &input_cfg->d.rdi_cfg, input_cfg->input_src);
 	return rc;
 }
+/*
+ * Dual-VFE sync and nanosecond SOF events are 4.19 CAF uapi additions;
+ * built only when the uapi has them (CTL uses the 4.4 camera uapi for
+ * its Pie mm-camera blobs).
+ */
+#ifdef VIDIOC_MSM_ISP_DUAL_SYNC_CFG
 static int msm_isp_set_dual_vfe_sync_mode(
 	struct vfe_device *vfe_dev, void *arg)
 {
@@ -542,6 +556,8 @@ static int msm_isp_set_dual_vfe_sync_mode(
 	vfe_dev->dual_vfe_sync_enable = mode->enable;
 	return 0;
 }
+#endif
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 static int msm_isp_nano_sec_timestamp(
 	struct vfe_device *vfe_dev, void *arg)
 {
@@ -550,6 +566,7 @@ static int msm_isp_nano_sec_timestamp(
 	vfe_dev->nanosec_ts_enable = mode->enable;
 	return 0;
 }
+#endif
 int msm_isp_cfg_input(struct vfe_device *vfe_dev, void *arg)
 {
 	int rc = 0;
@@ -1074,6 +1091,7 @@ static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 	case MSM_SD_UNNOTIFY_FREEZE:
 	case MSM_SD_SHUTDOWN:
 		break;
+#ifdef VIDIOC_MSM_ISP_DUAL_SYNC_CFG
 	case VIDIOC_MSM_ISP_DUAL_SYNC_CFG:
 		mutex_lock(&vfe_dev->core_mutex);
 		vfe_dev->dual_vfe_sync_enable =
@@ -1085,11 +1103,14 @@ static long msm_isp_ioctl_unlocked(struct v4l2_subdev *sd,
 		rc = msm_isp_set_dual_vfe_sync_mode(vfe_dev, arg);
 		mutex_unlock(&vfe_dev->core_mutex);
 		break;
+#endif
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 	case VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP:
 		mutex_lock(&vfe_dev->core_mutex);
 		rc = msm_isp_nano_sec_timestamp(vfe_dev, arg);
 		mutex_unlock(&vfe_dev->core_mutex);
 		break;
+#endif
 	default:
 		pr_err_ratelimited("%s: Invalid ISP command %x\n", __func__,
 				    cmd);
@@ -1583,6 +1604,7 @@ int msm_isp_send_event(struct vfe_device *vfe_dev,
 	return 0;
 }
 
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 int msm_isp_send_event_update_nanosec(struct vfe_device *vfe_dev,
 	uint32_t event_type,
 	struct msm_isp_event_data_nanosec *event_data)
@@ -1597,6 +1619,7 @@ int msm_isp_send_event_update_nanosec(struct vfe_device *vfe_dev,
 	v4l2_event_queue(vfe_dev->subdev.sd.devnode, &isp_event);
 	return 0;
 }
+#endif
 
 #define CAL_WORD(width, M, N) ((width * M + N - 1) / N)
 

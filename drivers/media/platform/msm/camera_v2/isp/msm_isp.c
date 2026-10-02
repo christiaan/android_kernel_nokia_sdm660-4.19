@@ -340,6 +340,7 @@ static long msm_isp_dqevent(struct file *file, struct v4l2_fh *vfh, void *arg)
 				file->f_flags & O_NONBLOCK);
 		if (rc)
 			return rc;
+#ifdef VIDIOC_MSM_ISP_NANOSEC_TIMESTAMP
 		if (isp_event.type == ISP_EVENT_SOF_UPDATE_NANOSEC) {
 			struct msm_isp_event_data_nanosec *event_data_nanosec;
 			struct msm_isp_event_data_nanosec
@@ -360,7 +361,9 @@ static long msm_isp_dqevent(struct file *file, struct v4l2_fh *vfh, void *arg)
 				event_data_nanosec->nano_timestamp;
 			event_data_nanosec_user->frame_id =
 				event_data_nanosec->frame_id;
-		} else {
+		} else
+#endif
+		{
 			event_data = (struct msm_isp_event_data *)
 					isp_event.u.data;
 			isp_event_user = (struct v4l2_event *)arg;

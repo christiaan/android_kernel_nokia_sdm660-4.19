@@ -758,8 +758,8 @@ int32_t msm_sensor_driver_probe(void *setting,
 
 	unsigned long                        mount_pos = 0;
 	uint32_t                             is_yuv;
-	struct msm_camera_i2c_reg_array     *reg_setting = NULL;
-	struct msm_sensor_id_info_t         *id_info = NULL;
+	struct msm_camera_i2c_reg_array     *reg_setting __maybe_unused = NULL;
+	struct msm_sensor_id_info_t         *id_info __maybe_unused = NULL;
 
 	/* Validate input parameters */
 	if (!setting) {
@@ -815,6 +815,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 		slave_info->sensor_id_info.sensor_id =
 			slave_info32->sensor_id_info.sensor_id;
 
+#ifdef SENSOR_PROBE_WRITE
 		slave_info->sensor_id_info.setting.addr_type =
 			slave_info32->sensor_id_info.setting.addr_type;
 		slave_info->sensor_id_info.setting.data_type =
@@ -858,6 +859,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 			slave_info->sensor_id_info.setting.reg_setting =
 				reg_setting;
 		}
+#endif
 
 		slave_info->slave_addr = slave_info32->slave_addr;
 		slave_info->power_setting_array.size =
@@ -893,6 +895,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 			rc = -EFAULT;
 			goto free_slave_info;
 		}
+#ifdef SENSOR_PROBE_WRITE
 		if (!slave_info->sensor_id_info.setting.size ||
 			slave_info->sensor_id_info.setting.size >
 			I2C_REG_DATA_MAX) {
@@ -924,6 +927,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 			slave_info->sensor_id_info.setting.reg_setting =
 				reg_setting;
 		}
+#endif
 	}
 
 	if (strlen(slave_info->sensor_name) >= MAX_SENSOR_NAME ||
@@ -1038,7 +1042,11 @@ int32_t msm_sensor_driver_probe(void *setting,
 		slave_info->sensor_id_info.sensor_id_reg_addr;
 	camera_info->sensor_id = slave_info->sensor_id_info.sensor_id;
 	camera_info->sensor_id_mask = slave_info->sensor_id_info.sensor_id_mask;
+#ifdef SENSOR_PROBE_WRITE
 	camera_info->setting = &(slave_info->sensor_id_info.setting);
+#else
+	camera_info->setting = NULL;
+#endif
 
 	/* Fill CCI master, slave address and CCI default params */
 	if (!s_ctrl->sensor_i2c_client) {
@@ -1199,7 +1207,9 @@ camera_power_down:
 free_camera_info:
 	kfree(camera_info);
 free_slave_info:
+#ifdef SENSOR_PROBE_WRITE
 	kfree(slave_info->sensor_id_info.setting.reg_setting);
+#endif
 	kfree(slave_info);
 	return rc;
 }

@@ -153,20 +153,27 @@ static long media_device_enum_entities(struct media_device *mdev, void *arg)
 	 * uapi) finds its nodes by the old media entity type and group id:
 	 * subdevs as MEDIA_ENT_T_V4L2_SUBDEV with group_id = 0..N
 	 * (CSIPHY = 0, CSID = 1, ...), the config/stream video nodes as
-	 * group_id 2. The 4.19 CAF uapi moved those ids into the function
-	 * space (MSM_CAMERA_SUBDEV_BASE = MEDIA_ENT_F_OLD_BASE + 0xF00,
-	 * QCAMERA_VNODE_GROUP_ID = MEDIA_ENT_F_IO_V4L), so report the old
-	 * values for camera entities.
+	 * group_id 2 (QCAMERA_VNODE_GROUP_ID, set by camera_v2).
 	 */
+#ifdef MSM_CAMERA_SUBDEV_BASE
+	/* 4.19 CAF uapi: the ids live in the function space */
 	if (is_media_entity_v4l2_subdev(ent) &&
 	    ent->function >= MSM_CAMERA_SUBDEV_BASE &&
 	    ent->function < MSM_CAMERA_SUBDEV_BASE + 0x100) {
-		entd->type = MEDIA_ENT_F_V4L2_SUBDEV_UNKNOWN; /* = old MEDIA_ENT_T_V4L2_SUBDEV */
+		entd->type = MEDIA_ENT_F_V4L2_SUBDEV_UNKNOWN;
 		entd->group_id = ent->function - MSM_CAMERA_SUBDEV_BASE;
 	} else if (!is_media_entity_v4l2_subdev(ent) &&
 		   ent->group_id == QCAMERA_VNODE_GROUP_ID) {
 		entd->group_id = 2;
 	}
+#else
+	/* 4.4 camera uapi: camera_v2 puts the legacy id in function */
+	if (is_media_entity_v4l2_subdev(ent) &&
+	    ent->function < MEDIA_ENT_F_OLD_BASE) {
+		entd->type = MEDIA_ENT_F_V4L2_SUBDEV_UNKNOWN; /* = old MEDIA_ENT_T_V4L2_SUBDEV */
+		entd->group_id = ent->function;
+	}
+#endif
 #endif
 
 	return 0;
