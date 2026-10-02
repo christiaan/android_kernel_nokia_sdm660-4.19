@@ -107,6 +107,13 @@ static struct file_operations cpu_info_file_ops = {
 
 static int __init fih_cpu_init(void)
 {
+	/*
+	 * fih_ddr used to create the AllHWList dir, but it is not built
+	 * on CTL. Create it here (module_init) so the cpu, touch and LCM
+	 * entries below it can be added.
+	 */
+	if (proc_mkdir(FIH_PROC_DIR, NULL) == NULL)
+		pr_err("fail to create proc/%s\n", FIH_PROC_DIR);
 
 	if (proc_create(FIH_PROC_PATH, 0, NULL, &cpu_info_file_ops) == NULL) {
 		pr_err("fail to create proc/%s\n", FIH_PROC_PATH);
