@@ -933,6 +933,7 @@ int camera_init_v4l2(struct device *dev, unsigned int *session)
 	if (WARN_ON(rc < 0))
 		goto entity_fail;
 	pvdev->vdev->entity.function = QCAMERA_VNODE_GROUP_ID;
+	pvdev->vdev->entity.group_id = QCAMERA_VNODE_GROUP_ID;
 #endif
 
 	v4l2_dev->notify = NULL;

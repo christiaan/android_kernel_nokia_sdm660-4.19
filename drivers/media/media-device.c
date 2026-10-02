@@ -29,6 +29,9 @@
 
 #include <media/media-device.h>
 #include <media/media-devnode.h>
+#if IS_ENABLED(CONFIG_MSMB_CAMERA)
+#include <media/msmb_camera.h>
+#endif
 #include <media/media-entity.h>
 
 #ifdef CONFIG_MEDIA_CONTROLLER
@@ -143,6 +146,28 @@ static long media_device_enum_entities(struct media_device *mdev, void *arg)
 	}
 
 	memcpy(&entd->raw, &ent->info, sizeof(ent->info));
+
+#if IS_ENABLED(CONFIG_MSMB_CAMERA)
+	/*
+	 * Legacy mm-camera userspace (built against the 4.4 msmb_camera.h
+	 * uapi) finds its nodes by the old media entity type and group id:
+	 * subdevs as MEDIA_ENT_T_V4L2_SUBDEV with group_id = 0..N
+	 * (CSIPHY = 0, CSID = 1, ...), the config/stream video nodes as
+	 * group_id 2. The 4.19 CAF uapi moved those ids into the function
+	 * space (MSM_CAMERA_SUBDEV_BASE = MEDIA_ENT_F_OLD_BASE + 0xF00,
+	 * QCAMERA_VNODE_GROUP_ID = MEDIA_ENT_F_IO_V4L), so report the old
+	 * values for camera entities.
+	 */
+	if (is_media_entity_v4l2_subdev(ent) &&
+	    ent->function >= MSM_CAMERA_SUBDEV_BASE &&
+	    ent->function < MSM_CAMERA_SUBDEV_BASE + 0x100) {
+		entd->type = MEDIA_ENT_F_V4L2_SUBDEV_UNKNOWN; /* = old MEDIA_ENT_T_V4L2_SUBDEV */
+		entd->group_id = ent->function - MSM_CAMERA_SUBDEV_BASE;
+	} else if (!is_media_entity_v4l2_subdev(ent) &&
+		   ent->group_id == QCAMERA_VNODE_GROUP_ID) {
+		entd->group_id = 2;
+	}
+#endif
 
 	return 0;
 }
