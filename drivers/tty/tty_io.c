@@ -2664,6 +2664,13 @@ long tty_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		tty_warn_deprecated_flags(p);
 		break;
 	case TIOCGPTPEER:
+		/*
+		 * Only pty masters have a peer. On other ttys this number is
+		 * the legacy msm_serial_hs TIOCPMGET, so pass it to the driver.
+		 */
+		if (tty->driver->type != TTY_DRIVER_TYPE_PTY ||
+		    tty->driver->subtype != PTY_TYPE_MASTER)
+			break;
 		/* Special because the struct file is needed */
 		return ptm_open_peer(file, tty, (int)arg);
 	default:
