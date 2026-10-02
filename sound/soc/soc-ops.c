@@ -444,9 +444,14 @@ int snd_soc_put_volsw_sx(struct snd_kcontrol *kcontrol,
 	unsigned int val, val_mask, val2 = 0;
 
 	val = ucontrol->value.integer.value[0];
-	if (mc->platform_max && val > mc->platform_max)
+	if (mc->platform_max && val > mc->platform_max - min)
 		return -EINVAL;
-	if (val > max)
+	/*
+	 * snd_soc_info_volsw() reports max - min levels for SX controls and
+	 * sets platform_max = max. QCOM codecs define theirs as min = -84,
+	 * max = 40 (124 levels), so both checks must allow max - min.
+	 */
+	if (val > max - min)
 		return -EINVAL;
 	if (val < 0)
 		return -EINVAL;
@@ -461,9 +466,9 @@ int snd_soc_put_volsw_sx(struct snd_kcontrol *kcontrol,
 	if (snd_soc_volsw_is_stereo(mc)) {
 		val2 = ucontrol->value.integer.value[1];
 
-		if (mc->platform_max && val2 > mc->platform_max)
+		if (mc->platform_max && val2 > mc->platform_max - min)
 			return -EINVAL;
-		if (val2 > max)
+		if (val2 > max - min)
 			return -EINVAL;
 
 		val_mask = mask << rshift;
