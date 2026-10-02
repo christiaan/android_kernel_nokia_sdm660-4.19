@@ -3107,6 +3107,24 @@ static struct snd_soc_card *msm_int_populate_sndcard_dailinks(
 		memcpy(dailink + len1,
 		       msm_mi2s_be_dai_links,
 		       sizeof(msm_mi2s_be_dai_links));
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		/*
+		 * FIH CTL/DRG: the speaker is a TI TAS2557 on tert-mi2s
+		 * (i2c_7, 0x4c). Point the tert-mi2s playback BE at it instead
+		 * of the stub codec, like the 4.4 FIH msm_mi2s_be_dai_links_ti.
+		 */
+		if (of_property_read_bool(dev->of_node, "fih,ti-tas2557")) {
+			int k;
+
+			for (k = len1; k < len1 + ARRAY_SIZE(msm_mi2s_be_dai_links);
+			     k++) {
+				if (dailink[k].id != MSM_BACKEND_DAI_TERTIARY_MI2S_RX)
+					continue;
+				dailink[k].codec_name = "tas2557.7-004c";
+				dailink[k].codec_dai_name = "tas2557 ASI1";
+			}
+		}
+#endif
 		len1 += ARRAY_SIZE(msm_mi2s_be_dai_links);
 	}
 	if (of_property_read_bool(dev->of_node,
