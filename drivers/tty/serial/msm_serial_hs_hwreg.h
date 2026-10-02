@@ -22,6 +22,15 @@
 #define MSM_DISABLE_UART_CLOCK TIOCPMPUT
 #define MSM_GET_UART_CLOCK_STATUS TIOCPMACT
 
+/*
+ * 4.4 numbered TIOCPMGET/PUT/ACT 0x5441-0x5443; 4.19 moved them because
+ * TIOCGPTPEER took 0x5441. Vendor BT HALs built against 4.4 headers still
+ * use the old numbers, so accept them too.
+ */
+#define MSM_LEGACY_ENABLE_UART_CLOCK 0x5441
+#define MSM_LEGACY_DISABLE_UART_CLOCK 0x5442
+#define MSM_LEGACY_GET_UART_CLOCK_STATUS 0x5443
+
 enum msm_hsl_regs {
 	UARTDM_MR1,
 	UARTDM_MR2,
