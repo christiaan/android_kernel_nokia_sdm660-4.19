@@ -6660,7 +6660,14 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 		pr_warn("Failed to initialize pp overlay data.\n");
 
 #if defined(CONFIG_PXLW_IRIS3)
-	mdss_dsi_iris_init(mfd);
+	/*
+	 * Iris sits behind the DSI panel only. Called for every fb, the
+	 * writeback fb1 (probed after fb0) replaced the DSI fb as the Iris
+	 * driver's mfd, so its MDP locks and panel state were fb1's.
+	 */
+	if (mfd->panel.type == MIPI_VIDEO_PANEL ||
+	    mfd->panel.type == MIPI_CMD_PANEL)
+		mdss_dsi_iris_init(mfd);
 #endif
 	return rc;
 init_fail:
