@@ -2764,17 +2764,21 @@ static int iris_select_cont_splash_ipopt(
 void mdss_mdp_lock(struct msm_fb_data_type *mfd, int locked)
 {
 	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
-	static int ov_lock_st;
-	static int list_lock_st;
 
+	/*
+	 * Wait for the locks instead of trying them. The cont-splash work is
+	 * queued from the first UNBLANK, which runs inside the overlay
+	 * kickoff with ov_lock held; with trylock the work sent its packets
+	 * while that kickoff was still bringing up the link, which left the
+	 * DSI clocks stuck and oopsed in mdss_dsi_cmds_tx. Same order as the
+	 * kickoff (ov_lock, then list_lock); no caller holds either.
+	 */
 	if (locked) {
-		ov_lock_st = mutex_trylock(&mdp5_data->ov_lock);
-		list_lock_st = mutex_trylock(&mdp5_data->list_lock);
+		mutex_lock(&mdp5_data->ov_lock);
+		mutex_lock(&mdp5_data->list_lock);
 	} else {
-		if (ov_lock_st == 1)
-			mutex_unlock(&mdp5_data->ov_lock);
-		if (list_lock_st == 1)
-			mutex_unlock(&mdp5_data->list_lock);
+		mutex_unlock(&mdp5_data->list_lock);
+		mutex_unlock(&mdp5_data->ov_lock);
 	}
 }
 
