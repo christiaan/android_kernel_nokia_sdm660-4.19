@@ -2802,6 +2802,19 @@ void iris_send_cont_splash_pkt(uint32_t type)
 		len = iris_select_cont_splash_ipopt(type, opt_arr);
 		/*stop video -->set pq --> start video*/
 		mdss_mdp_lock(mfd, 1);
+		/*
+		 * The panel can be powered off between the UNBLANK that queued
+		 * this and getting the locks (LineageOS recovery powers it off
+		 * ~0.3 s after its first unblank). Sending then only times out
+		 * and oopses; the next panel on lights Iris up in full anyway.
+		 * The power-off runs under ov_lock, so the state is stable here.
+		 */
+		if (!mdss_panel_is_power_on(mfd->panel_info->panel_power_state)) {
+			pr_info("%s: panel off, skipping cont-splash packets\n",
+				__func__);
+			mdss_mdp_lock(mfd, 0);
+			return;
+		}
 		mdelay(20);
 		iris_send_assembled_pkt(opt_arr, len);
 		mdss_mdp_lock(mfd, 0);
