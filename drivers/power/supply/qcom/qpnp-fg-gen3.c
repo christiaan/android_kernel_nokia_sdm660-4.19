@@ -3728,6 +3728,14 @@ static int fg_psy_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 		pval->intval = chip->cl.learned_cc_uah;
 		break;
+	case POWER_SUPPLY_PROP_STATE_OF_HEALTH:
+		/* Learned capacity in percent of the profile's capacity */
+		if (chip->cl.nom_cap_uah <= 0 || chip->cl.learned_cc_uah <= 0)
+			return -ENODATA;
+		pval->intval = min_t(int64_t, 100,
+			div64_s64(chip->cl.learned_cc_uah * 100,
+				  chip->cl.nom_cap_uah));
+		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		rc = fg_get_charge_counter(fg, &pval->intval);
 		break;
@@ -4065,6 +4073,7 @@ static enum power_supply_property fg_psy_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_CYCLE_COUNTS,
+	POWER_SUPPLY_PROP_STATE_OF_HEALTH,
 	POWER_SUPPLY_PROP_CHARGE_NOW_RAW,
 	POWER_SUPPLY_PROP_CHARGE_NOW,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
