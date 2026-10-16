@@ -325,8 +325,13 @@ void sec_nfc_i2c_irq_clear(struct sec_nfc_info *info)
 static int sec_nfc_chip_detect(struct sec_nfc_info *info)
 {
     int ret;
-    unsigned char get_boot_info_cmd[4]={0x00,0x01,0x00,0x00};
-    unsigned char rx_buff[18]={0};
+    static const unsigned char boot_info_cmd[4] = {0x00, 0x01, 0x00, 0x00};
+    /*
+     * i2c-msm-v2 DMA-maps message buffers and the stack is vmalloc'ed
+     * (VMAP_STACK), so use the driver's heap buffer for both directions.
+     */
+    unsigned char *get_boot_info_cmd = info->i2c_info.buf;
+    unsigned char *rx_buff = info->i2c_info.buf;
 
     dev_dbg(info->dev, "%s: start: %p\n", __func__, info);
     printk("%s: start: %p\n", __func__, info);
@@ -337,16 +342,17 @@ static int sec_nfc_chip_detect(struct sec_nfc_info *info)
     sec_nfc_set_mode(info, SEC_NFC_MODE_BOOTLOADER);
     msleep(20);
 
-    ret = i2c_master_send(info->i2c_info.i2c_dev, get_boot_info_cmd, sizeof(get_boot_info_cmd));
-    if(ret != sizeof(get_boot_info_cmd)){
+    memcpy(get_boot_info_cmd, boot_info_cmd, sizeof(boot_info_cmd));
+    ret = i2c_master_send(info->i2c_info.i2c_dev, get_boot_info_cmd, sizeof(boot_info_cmd));
+    if(ret != sizeof(boot_info_cmd)){
 	dev_dbg(info->dev, "failed to sent test command: %d\n",ret);
         printk("failed to sent test command: %d\n",ret);
 	ret = -1;
         goto detect_end;
     }
 
-    ret = i2c_master_recv(info->i2c_info.i2c_dev, rx_buff, sizeof(rx_buff));
-    if(ret != sizeof(rx_buff)){
+    ret = i2c_master_recv(info->i2c_info.i2c_dev, rx_buff, 18);
+    if(ret != 18){
 	dev_dbg(info->dev, "failed to recv bootlaoder info: %d\n",ret);
         printk("failed to recv bootlaoder info: %d\n",ret);
 	ret = -1;
