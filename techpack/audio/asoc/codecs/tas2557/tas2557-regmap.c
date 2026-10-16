@@ -245,7 +245,20 @@ static int tas2557_dev_bulk_read(
 				TAS2557_BOOK_ID(nRegister),
 				TAS2557_PAGE_ID(nRegister));
 	if (nResult >= 0) {
-		nResult = regmap_bulk_read(pTAS2557->mpRegmap, TAS2557_PAGE_REG(nRegister), pData, nLength);
+		/*
+		 * i2c-msm-v2 DMA-maps the message buffer; callers pass stack
+		 * buffers (VMAP_STACK), so bounce through the heap.
+		 */
+		u8 *pBuf = kmalloc(nLength, GFP_KERNEL);
+
+		if (!pBuf) {
+			nResult = -ENOMEM;
+			goto end;
+		}
+		nResult = regmap_bulk_read(pTAS2557->mpRegmap, TAS2557_PAGE_REG(nRegister), pBuf, nLength);
+		if (nResult >= 0)
+			memcpy(pData, pBuf, nLength);
+		kfree(pBuf);
 		if (nResult < 0) {
 			dev_err(pTAS2557->dev, "%s, %d, I2C error %d\n",
 				__func__, __LINE__, nResult);
@@ -286,7 +299,15 @@ static int tas2557_dev_bulk_write(
 				TAS2557_BOOK_ID(nRegister),
 				TAS2557_PAGE_ID(nRegister));
 	if (nResult >= 0) {
-		nResult = regmap_bulk_write(pTAS2557->mpRegmap, TAS2557_PAGE_REG(nRegister), pData, nLength);
+		/* see tas2557_dev_bulk_read(): no DMA from stack buffers */
+		u8 *pBuf = kmemdup(pData, nLength, GFP_KERNEL);
+
+		if (!pBuf) {
+			nResult = -ENOMEM;
+			goto end;
+		}
+		nResult = regmap_bulk_write(pTAS2557->mpRegmap, TAS2557_PAGE_REG(nRegister), pBuf, nLength);
+		kfree(pBuf);
 		if (nResult < 0) {
 			dev_err(pTAS2557->dev, "%s, %d, I2C error %d\n",
 				__func__, __LINE__, nResult);
