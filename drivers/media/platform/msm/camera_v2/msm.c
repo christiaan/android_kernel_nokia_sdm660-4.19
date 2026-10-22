@@ -239,7 +239,9 @@ static inline void msm_pm_qos_add_request(void)
 static void msm_pm_qos_remove_request(void)
 {
 	pr_info("%s: remove request\n", __func__);
-	pm_qos_remove_request(&msm_v4l2_pm_qos_request);
+	/* Clear the flag so the next open adds the request again. */
+	if (atomic_cmpxchg(&qos_add_request_done, 1, 0))
+		pm_qos_remove_request(&msm_v4l2_pm_qos_request);
 }
 
 void msm_pm_qos_update_request(int val)
