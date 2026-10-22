@@ -5139,11 +5139,18 @@ QDF_STATUS hdd_init_station_mode(struct hdd_adapter *adapter)
 	 * In case of USB tethering, LRO is disabled. If SSR happened
 	 * during that time, then as part of SSR init, do not enable
 	 * the LRO again. Keep the LRO state same as before SSR.
+	 *
+	 * Only advertise LRO when the driver's LRO path is built
+	 * (FEATURE_LRO needs CONFIG_INET_LRO, gone since 4.x). Without it
+	 * hdd_lro_rx() is a stub, and the flag is not in hw_features, so
+	 * dev_disable_lro() (IP forwarding on) can't clear it and WARNs.
 	 */
+#ifdef FEATURE_LRO
 	if (cdp_cfg_get(cds_get_context(QDF_MODULE_ID_SOC),
 			cfg_dp_lro_enable) &&
 			!(qdf_atomic_read(&hdd_ctx->vendor_disable_lro_flag)))
 		adapter->dev->features |= NETIF_F_LRO;
+#endif
 
 	if (cdp_cfg_get(cds_get_context(QDF_MODULE_ID_SOC),
 			cfg_dp_enable_ip_tcp_udp_checksum_offload))
